@@ -2,15 +2,13 @@ package main
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 
-	"boson/token"
+	"github.com/subtlepseudonym/boson/token"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
