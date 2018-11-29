@@ -1,13 +1,11 @@
 package main
 
 import (
-	"encoding/base64"
-	"io/ioutil"
+	"context"
 	"log"
 
 	"github.com/subtlepseudonym/boson/email"
 
-	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
 )
 
@@ -20,24 +18,9 @@ const (
 )
 
 func main() {
-	b, err := ioutil.ReadFile(credsFile)
+	srv, err := email.NewService(context.Background(), credsFile, tokFile, gmail.GmailSendScope)
 	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, gmail.GmailSendScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client, err := email.GetClient(config, tokFile)
-	if err != nil {
-		log.Fatalf("Unable to get oauth client: %v", err)
-	}
-
-	srv, err := gmail.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve Gmail client: %v", err)
+		log.Fatalf("create new email service failed: %s", err)
 	}
 
 	m := email.Message{
@@ -48,24 +31,8 @@ func main() {
 		Body:    "This is a test email from boson",
 	}
 
-	var msg gmail.Message
-	msg.Raw = base64.StdEncoding.EncodeToString([]byte(m.String()))
-
-	user := "me"
-	_, err = srv.Users.Messages.Send(user, &msg).Do()
+	err = srv.Send(m)
 	if err != nil {
-		log.Fatalf("Send message failed: %v", err)
+		log.Fatalf("send message failed: %s", err)
 	}
-	//        r, err := srv.Users.Labels.List(user).Do()
-	//        if err != nil {
-	//                log.Fatalf("Unable to retrieve labels: %v", err)
-	//        }
-	//        if len(r.Labels) == 0 {
-	//                fmt.Println("No labels found.")
-	//                return
-	//        }
-	//        fmt.Println("Labels:")
-	//        for _, l := range r.Labels {
-	//                fmt.Printf("- %s\n", l.Name)
-	//        }
 }

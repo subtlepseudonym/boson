@@ -1,28 +1,35 @@
-package token
+package email
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
+	"os"
 
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
-// GetClient retrieves a token, saves the token, then returns the generated client
-func GetClient(config *oauth2.Config, tokFile string) (*http.Client, error) {
-	tok, err := GetTokenFromFile(tokFile)
+// saveToken saves a token to a file path
+// FIXME: decide if this is useful
+func saveToken(path string, token *oauth2.Token) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		// FIXME: figure out if I'm even going to use this fn. If yes, just return an error here
-		tok = requestTokenFromUser(config)
-		SaveToken(tokFile, tok)
+		return errors.Wrap(err, "open file failed")
 	}
-	//log.Printf("token valid: %t\n", tok.Valid())
-	return config.Client(context.Background(), tok), nil
+	defer f.Close()
+
+	err = json.NewEncoder(f).Encode(token)
+	if err != nil {
+		return errors.Wrap(err, "encode token failed")
+	}
+	return nil
 }
 
 // requestTokenFromUser prompts the user to visit a web page, authorize this application,
 // generate a token, and copy it to the command line
+// FIXME: decide if this is useful
 func requestTokenFromUser(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser then type the authorization code: \n%v\n", authURL)
