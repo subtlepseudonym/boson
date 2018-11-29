@@ -1,6 +1,7 @@
 package email
 
 import (
+	"encoding/base64"
 	"io"
 
 	"google.golang.org/api/gmail/v1"
@@ -21,11 +22,12 @@ type Message struct {
 // TODO: prefer $NAME <$address> format, should research if that's worth
 func (m Message) toGmailMessage() *gmail.Message {
 	var msg gmail.Message
-	msg.Raw = "From: " + m.From + "\r\n" +
+	s := "From: " + m.From + "\r\n" +
 		"reply-to: " + m.ReplyTo + "\r\n" +
 		"To: " + m.To + "\r\n" +
 		"Subject: " + m.Subject + "\r\n" +
 		"\r\n" + m.Body
+	msg.Raw = base64.StdEncoding.EncodeToString([]byte(s))
 
 	return &msg
 }

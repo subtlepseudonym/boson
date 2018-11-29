@@ -34,13 +34,13 @@ func NewService(ctx context.Context, credentialsPath, tokenPath string, scope ..
 		return nil, errors.Wrap(err, "read token failed")
 	}
 
-	var token *oauth2.Token
-	err = json.Unmarshal(tb, token)
+	var token oauth2.Token
+	err = json.Unmarshal(tb, &token)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode token failed")
 	}
 
-	client := config.Client(ctx, token)
+	client := config.Client(ctx, &token)
 	gmailService, err := gmail.New(client)
 	if err != nil {
 		return nil, errors.Wrap(err, "retrieve gmail client failed")
