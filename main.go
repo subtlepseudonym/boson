@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/base64"
-	"io"
 	"io/ioutil"
 	"log"
 
-	"github.com/subtlepseudonym/boson/token"
+	"github.com/subtlepseudonym/boson/email"
 
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
@@ -16,26 +15,9 @@ const (
 	fromUser       = "Machine Spirit"
 	replyToAddress = "mechanicusdeus@gmail.com"
 	toAddress      = "subtlepseudonym@gmail.com"
-	tokFile        = "token.json"
-	credsFile      = "credentials.json"
+	tokFile        = "secrets/token.json"
+	credsFile      = "secrets/credentials.json"
 )
-
-type message struct {
-	From       string // from name
-	ReplyTo    string // reply-to address
-	To         string // to address
-	Subject    string
-	Body       string
-	Attachment io.Reader // optional attachment
-}
-
-func (m message) String() string {
-	return "From: " + m.From + "\r\n" +
-		"reply-to: " + m.ReplyTo + "\r\n" +
-		"To: " + m.To + "\r\n" +
-		"Subject: " + m.Subject + "\r\n" +
-		"\r\n" + m.Body
-}
 
 func main() {
 	b, err := ioutil.ReadFile(credsFile)
@@ -48,7 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
-	client, err := token.GetClient(config, tokFile)
+	client, err := email.GetClient(config, tokFile)
 	if err != nil {
 		log.Fatalf("Unable to get oauth client: %v", err)
 	}
@@ -58,7 +40,7 @@ func main() {
 		log.Fatalf("Unable to retrieve Gmail client: %v", err)
 	}
 
-	m := message{
+	m := email.Message{
 		From:    fromUser,
 		ReplyTo: replyToAddress,
 		To:      toAddress,
