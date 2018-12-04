@@ -11,11 +11,15 @@ import (
 	"google.golang.org/api/gmail/v1"
 )
 
-type Service struct {
-	credentialsPath string
-	tokenPath       string
-	gmailService    *gmail.Service
+// Config holds values used to mutate the way Service behaves
+type Config struct {
+	FromUser       string
+	ReplyToAddress string
 	// TODO: oauth2 scopes?
+}
+
+type Service struct {
+	gmailService *gmail.Service
 }
 
 func NewService(ctx context.Context, credentialsPath, tokenPath string, scope ...string) (*Service, error) {
@@ -47,19 +51,21 @@ func NewService(ctx context.Context, credentialsPath, tokenPath string, scope ..
 	}
 
 	service := Service{
-		credentialsPath: credentialsPath,
-		tokenPath:       tokenPath,
-		gmailService:    gmailService,
+		gmailService: gmailService,
 	}
 	return &service, nil
 }
 
-func (s *Service) Send(msg Message) error {
+func (s *Service) Send(msg Message) (*gmail.Message, error) {
 	// FIXME: why is user "me" ?
 	sendCall := s.gmailService.Users.Messages.Send("me", msg.toGmailMessage())
 	if msg.Attachment != nil {
 		sendCall.Media(msg.Attachment) // FIXME: use options field
 	}
-	_, err := sendCall.Do()
-	return err
+	gmailMessage, err := sendCall.Do()
+	if err != nil {
+		return nil, errors.Wrap(err, "send call failed")
+	}
+
+	return gmailMessage, nil
 }
