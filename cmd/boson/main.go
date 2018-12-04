@@ -11,6 +11,7 @@ import (
 	"google.golang.org/api/gmail/v1"
 )
 
+// TODO: read these from file
 const (
 	fromUser       = "Machine Spirit"
 	replyToAddress = "mechanicusdeus@gmail.com"
@@ -36,5 +37,6 @@ func main() {
 		Handler: emailHandler, // TODO: use a proper muxer
 	}
 
+	log.Printf("Listening on %s\n", srv.Addr)
 	log.Fatal(srv.ListenAndServe())
 }
