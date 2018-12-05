@@ -1,4 +1,4 @@
-package boson
+package api
 
 import (
 	"encoding/json"
@@ -15,12 +15,20 @@ type Email struct {
 	Body    string `json:"body"`
 }
 
+// EmailConfig holds values used to mutate the way Service behaves
+// FIXME: FromUser and ReplyToAddress are only used / helpful to boson/api
+type EmailConfig struct {
+	FromUser       string
+	ReplyToAddress string
+	// TODO: oauth2 scopes?
+}
+
 type emailHandler struct {
-	config  email.Config
+	config  EmailConfig
 	service *email.Service
 }
 
-func NewEmailHandler(cfg email.Config, srv *email.Service) emailHandler {
+func NewEmailHandler(cfg EmailConfig, srv *email.GmailService) emailHandler {
 	return emailHandler{
 		config:  cfg,
 		service: srv,

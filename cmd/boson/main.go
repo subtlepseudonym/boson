@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/subtlepseudonym/boson"
+	"github.com/subtlepseudonym/boson/api"
 	"github.com/subtlepseudonym/boson/email"
 
 	"google.golang.org/api/gmail/v1"
@@ -25,12 +25,12 @@ func main() {
 		log.Fatalf("create new email service failed: %s", err)
 	}
 
-	emailConfig := email.Config{
+	emailConfig := api.EmailConfig{
 		FromUser:       fromUser,
 		ReplyToAddress: replyToAddress,
 	}
 
-	emailHandler := boson.NewEmailHandler(emailConfig, emailService)
+	emailHandler := api.NewEmailHandler(emailConfig, emailService)
 
 	srv := &http.Server{
 		Addr:    "0.0.0.0:8080",

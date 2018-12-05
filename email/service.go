@@ -11,18 +11,13 @@ import (
 	"google.golang.org/api/gmail/v1"
 )
 
-// Config holds values used to mutate the way Service behaves
-type Config struct {
-	FromUser       string
-	ReplyToAddress string
-	// TODO: oauth2 scopes?
-}
-
-type Service struct {
+// TODO: this will likely become an implementation of the Service interface
+// and hold multiple *gmail.Service objects
+type GmailService struct {
 	gmailService *gmail.Service
 }
 
-func NewService(ctx context.Context, credentialsPath, tokenPath string, scope ...string) (*Service, error) {
+func NewGmailService(ctx context.Context, credentialsPath, tokenPath string, scope ...string) (*GmailService, error) {
 	cb, err := ioutil.ReadFile(credentialsPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "read credentials failed")
@@ -50,13 +45,13 @@ func NewService(ctx context.Context, credentialsPath, tokenPath string, scope ..
 		return nil, errors.Wrap(err, "retrieve gmail client failed")
 	}
 
-	service := Service{
+	service := GmailService{
 		gmailService: gmailService,
 	}
 	return &service, nil
 }
 
-func (s *Service) Send(msg Message) (*gmail.Message, error) {
+func (s *GmailService) Send(msg Message) (*gmail.Message, error) {
 	// FIXME: why is user "me" ?
 	sendCall := s.gmailService.Users.Messages.Send("me", msg.toGmailMessage())
 	if msg.Attachment != nil {
