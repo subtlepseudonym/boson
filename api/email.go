@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/subtlepseudonym/boson/email"
@@ -16,11 +17,9 @@ type Email struct {
 }
 
 // EmailConfig holds values used to mutate the way Service behaves
-// FIXME: FromUser and ReplyToAddress are only used / helpful to boson/api
 type EmailConfig struct {
-	FromUser       string
-	ReplyToAddress string
-	// TODO: oauth2 scopes?
+	From    string
+	ReplyTo string
 }
 
 type emailHandler struct {
@@ -28,7 +27,7 @@ type emailHandler struct {
 	service *email.Service
 }
 
-func NewEmailHandler(cfg EmailConfig, srv *email.GmailService) emailHandler {
+func NewEmailHandler(cfg EmailConfig, srv *email.Service) emailHandler {
 	return emailHandler{
 		config:  cfg,
 		service: srv,
@@ -60,19 +59,15 @@ func (h emailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: allow client to pick which address they'd like to send from
-	msg.From = h.config.FromUser
-	msg.ReplyTo = h.config.ReplyToAddress
+	// 		 This will require sending a password as part of the request
+	msg.From = h.config.From
+	msg.ReplyTo = h.config.ReplyTo
 
-	gmailMsg, err := h.service.Send(msg)
+	err = h.service.Send(msg)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(jsonMessage("unable to send email"))
-		return
-	}
-
-	if gmailMsg.ServerResponse.HTTPStatusCode != http.StatusOK {
-		w.WriteHeader(gmailMsg.ServerResponse.HTTPStatusCode)
-		w.Write(jsonMessage("unexpected response code"))
 		return
 	}
 	w.Write(jsonMessage("sent"))

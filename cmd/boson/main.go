@@ -1,33 +1,30 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/subtlepseudonym/boson/api"
 	"github.com/subtlepseudonym/boson/email"
-
-	"google.golang.org/api/gmail/v1"
 )
 
 // TODO: read these from file
 const (
-	fromUser       = "Machine Spirit"
-	replyToAddress = "mechanicusdeus@gmail.com"
-	tokFile        = "secrets/token.json"
-	credsFile      = "secrets/credentials.json"
+	from      = "Machine Spirit"
+	replyTo   = "mechanicusdeus@gmail.com"
+	credsFile = "secrets/credentials.json"
 )
 
 func main() {
-	emailService, err := email.NewService(context.Background(), credsFile, tokFile, gmail.GmailSendScope)
+	emailService, err := email.NewService(credsFile)
 	if err != nil {
-		log.Fatalf("create new email service failed: %s", err)
+		log.Fatalf("create new email service: %s", err)
 	}
 
 	emailConfig := api.EmailConfig{
-		FromUser:       fromUser,
-		ReplyToAddress: replyToAddress,
+		From:    fmt.Sprintf("%q <%s>", from, replyTo),
+		ReplyTo: replyTo,
 	}
 
 	emailHandler := api.NewEmailHandler(emailConfig, emailService)

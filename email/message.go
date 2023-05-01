@@ -1,33 +1,36 @@
 package email
 
 import (
-	"encoding/base64"
+	"fmt"
 	"io"
-
-	"google.golang.org/api/gmail/v1"
+	"strings"
 )
 
 // Message holds the fields for a basic email message
 type Message struct {
 	From       string // from name
 	ReplyTo    string // from address
-	To         string
+	To         []string
 	Subject    string
 	Body       string
 	Attachment io.Reader
 }
 
-// toGmailMessage converts the Message into RFC 822 compliant format and
-// encapsulates it within a gmail.Message type
-// TODO: prefer $NAME <$address> format, should research if that's worth
-func (m Message) toGmailMessage() *gmail.Message {
-	var msg gmail.Message
-	s := "From: " + m.From + "\r\n" +
-		"reply-to: " + m.ReplyTo + "\r\n" +
-		"To: " + m.To + "\r\n" +
-		"Subject: " + m.Subject + "\r\n" +
-		"\r\n" + m.Body
-	msg.Raw = base64.StdEncoding.EncodeToString([]byte(s))
+func (m Message) String() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf(
+		"From: %s\r\nReply-To: %s\r\n",
+		m.From,
+		m.ReplyTo,
+	))
+	for _, to := range m.To {
+		sb.WriteString(fmt.Sprintf("To: %s\r\n", to))
+	}
+	sb.WriteString(fmt.Sprintf(
+		"Subject: %s\r\n\r\n%s",
+		m.Subject,
+		m.Body,
+	))
 
-	return &msg
+	return sb.String()
 }
