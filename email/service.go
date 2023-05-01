@@ -9,16 +9,18 @@ import (
 )
 
 const (
-	smtpHost = "smtp.gmail.com"
-	smtpPort = "587"
+	defaultSMTPHost = "smtp.gmail.com"
+	defaultSMTPPort = 587
 )
 
 type Service struct {
 	From     string
+	Host string
+	Port int
 	password string
 }
 
-func NewService(credentialsPath string) (*Service, error) {
+func NewService(host string, port int, credentialsPath string) (*Service, error) {
 	var secrets struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -34,25 +36,31 @@ func NewService(credentialsPath string) (*Service, error) {
 
 	return &Service{
 		From:     secrets.Email,
+		Host:     host,
+		Port:     port,
 		password: secrets.Password,
 	}, nil
 }
 
 func (s *Service) Send(msg Message) error {
-	client, err := smtp.Dial(fmt.Sprintf("%s:%s", smtpHost, smtpPort))
+	client, err := smtp.Dial(fmt.Sprintf("%s:%d", s.Host, s.Port))
 	if err != nil {
 		return fmt.Errorf("dial smtp addr: %w", err)
 	}
 	defer client.Quit()
 
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
+	supportsTLS, _ := client.Extension("STARTTLS")
+	if supportsTLS {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		err = client.StartTLS(tlsConfig)
+		if err != nil {
+			return fmt.Errorf("smtp start tls: %w", err)
+		}
 	}
-	err = client.StartTLS(tlsConfig)
-	if err != nil {
-		return fmt.Errorf("smtp start tls: %w", err)
-	}
-	err = client.Auth(smtp.PlainAuth("", s.From, s.password, smtpHost))
+
+	err = client.Auth(smtp.PlainAuth("", s.From, s.password, s.Host))
 	if err != nil {
 		return fmt.Errorf("smtp auth: %w", err)
 	}

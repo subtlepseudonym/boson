@@ -11,13 +11,16 @@ import (
 
 // TODO: read these from file
 const (
+	smtpHost = "smtp.gmail.com"
+	smtpPort = 587
+
 	from      = "Machine Spirit"
 	replyTo   = "mechanicusdeus@gmail.com"
 	credsFile = "secrets/credentials.json"
 )
 
 func main() {
-	emailService, err := email.NewService(credsFile)
+	emailService, err := email.NewService(smtpHost, smtpPort, credsFile)
 	if err != nil {
 		log.Fatalf("create new email service: %s", err)
 	}
