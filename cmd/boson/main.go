@@ -29,12 +29,17 @@ func main() {
 		From:    fmt.Sprintf("%q <%s>", from, replyTo),
 		ReplyTo: replyTo,
 	}
+	smsConfig := api.SMSConfig{
+		From: fmt.Sprintf("%q <%s>", from, replyTo),
+	}
 
-	emailHandler := api.NewEmailHandler(emailConfig, emailService)
+	mux := http.NewServeMux()
+	mux.Handle("/email", api.NewEmailHandler(emailConfig, emailService))
+	mux.Handle("/sms", api.NewSMSHandler(smsConfig, emailService))
 
 	srv := &http.Server{
 		Addr:    "0.0.0.0:8080",
-		Handler: emailHandler, // TODO: use a proper muxer
+		Handler: mux,
 	}
 
 	log.Printf("Listening on %s\n", srv.Addr)

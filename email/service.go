@@ -15,8 +15,8 @@ const (
 
 type Service struct {
 	From     string
-	Host string
-	Port int
+	Host     string
+	Port     int
 	password string
 }
 

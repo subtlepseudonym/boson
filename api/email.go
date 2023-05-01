@@ -11,9 +11,9 @@ import (
 // Email defines the email.Message fields that are exposed to REST clients
 // TODO: add support for multiple from addresses
 type Email struct {
-	To      string `json:"to"`
-	Subject string `json:"subject"`
-	Body    string `json:"body"`
+	To      []string `json:"to"`
+	Subject string   `json:"subject"`
+	Body    string   `json:"body"`
 }
 
 // EmailConfig holds values used to mutate the way Service behaves
@@ -27,7 +27,7 @@ type emailHandler struct {
 	service *email.Service
 }
 
-func NewEmailHandler(cfg EmailConfig, srv *email.Service) emailHandler {
+func NewEmailHandler(cfg EmailConfig, srv *email.Service) http.Handler {
 	return emailHandler{
 		config:  cfg,
 		service: srv,
@@ -49,7 +49,7 @@ func (h emailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var msg email.Message
+	var msg Email
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&msg)
 	if err != nil {
@@ -60,10 +60,14 @@ func (h emailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: allow client to pick which address they'd like to send from
 	// 		 This will require sending a password as part of the request
-	msg.From = h.config.From
-	msg.ReplyTo = h.config.ReplyTo
-
-	err = h.service.Send(msg)
+	message := email.Message{
+		From:    h.config.From,
+		ReplyTo: h.config.ReplyTo,
+		To:      msg.To,
+		Subject: msg.Subject,
+		Body:    msg.Body,
+	}
+	err = h.service.Send(message)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
