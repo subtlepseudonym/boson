@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,13 +15,18 @@ const (
 	smtpHost = "smtp.gmail.com"
 	smtpPort = 587
 
-	from      = "Machine Spirit"
-	replyTo   = "mechanicusdeus@gmail.com"
-	credsFile = "secrets/credentials.json"
+	from                   = "Machine Spirit"
+	replyTo                = "mechanicusdeus@gmail.com"
+	defaultCredentialsPath = "secrets/credentials.json"
 )
 
+var credentialsPath string
+
 func main() {
-	emailService, err := email.NewService(smtpHost, smtpPort, credsFile)
+	flag.StringVar(&credentialsPath, "credentials", defaultCredentialsPath, "Path to JSON file with email credentials")
+	flag.Parse()
+
+	emailService, err := email.NewService(smtpHost, smtpPort, credentialsPath)
 	if err != nil {
 		log.Fatalf("create new email service: %s", err)
 	}
