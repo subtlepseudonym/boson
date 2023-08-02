@@ -23,13 +23,13 @@ type smsHandler struct {
 }
 
 func NewSMSHandler(cfg SMSConfig, srv *email.Service) http.Handler {
-	return smsHandler{
+	return &smsHandler{
 		config:  cfg,
 		service: srv,
 	}
 }
 
-func (h smsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *smsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Write(jsonMessage("only method POST allowed"))
