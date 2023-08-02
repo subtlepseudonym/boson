@@ -11,7 +11,7 @@ type Message struct {
 	From       string // from name
 	ReplyTo    string // from address
 	To         []string
-	Subject    string
+	Headers    []string
 	Body       string
 	Attachment io.Reader
 }
@@ -26,11 +26,9 @@ func (m Message) String() string {
 	for _, to := range m.To {
 		sb.WriteString(fmt.Sprintf("To: %s\r\n", to))
 	}
-	sb.WriteString(fmt.Sprintf(
-		"Subject: %s\r\n\r\n%s",
-		m.Subject,
-		m.Body,
-	))
+	sb.WriteString(strings.Join(m.Headers, "\r\n"))
+	sb.WriteString("\r\n")
+	sb.WriteString(m.Body)
 
 	return sb.String()
 }

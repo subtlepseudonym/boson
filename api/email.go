@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/subtlepseudonym/boson/email"
 
@@ -69,7 +70,7 @@ func (h *EmailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		From:    h.config.From,
 		ReplyTo: h.config.ReplyTo,
 		To:      msg.To,
-		Subject: msg.Subject,
+		Headers: []string{fmt.Sprint("Subject:", msg.Subject)},
 		Body:    msg.Body,
 	}
 	err = h.service.Send(message)
@@ -105,7 +106,7 @@ func (s *session) AuthPlain(username, password string) error {
 }
 
 func (s *session) Mail(from string, opts *smtp.MailOptions) error {
-	s.Message.Body += fmt.Sprintf("Forwarded for %s\n", from)
+	s.Message.Headers = append(s.Message.Headers, fmt.Sprintf("Forwarded-For: %s", from))
 	return nil
 }
 
@@ -122,14 +123,24 @@ func (s *session) Data(r io.Reader) error {
 	body := string(b)
 
 	// FIXME: there's got to be a better way than using regex
-	subjectRegex := regexp.MustCompile(`(?i:subject:)(.*)\r\n`)
-	idx := subjectRegex.FindStringSubmatchIndex(string(b))
-	if len(idx) >= 4 {
-		s.Message.Subject = body[idx[2]:idx[3]]
-		// TODO: look into whether strings.Join is fast for larger body slices
-		s.Message.Body += body[:idx[0]] + body[idx[1]:]
+	subjectRegex := regexp.MustCompile(`(?i)(subject:.*)\r\n`)
+	sidx := subjectRegex.FindStringSubmatchIndex(body)
+	if len(sidx) >= 4 {
+		subject := body[sidx[2]:sidx[3]]
+		s.Message.Headers = append(s.Message.Headers, subject)
+		body = body[:sidx[2]] + body[sidx[3]:] // remove subject line
+	}
+
+	lineBreakRegex := regexp.MustCompile(`\r\n\r\n`) // indicates end of headers
+	idx := lineBreakRegex.FindStringIndex(body)
+	if len(idx) >= 2 {
+		headers := body[:idx[0]]
+		for _, header := range strings.Split(headers, "\r\n") {
+			s.Message.Headers = append(s.Message.Headers, fmt.Sprintf("Proxied-%s", header))
+		}
+		s.Message.Body = body[idx[1]:]
 	} else {
-		s.Message.Body += body
+		s.Message.Body = body
 	}
 
 	err = s.service.Send(s.Message)
@@ -142,7 +153,7 @@ func (s *session) Data(r io.Reader) error {
 
 func (s *session) Reset() {
 	s.Message.To = nil
-	s.Message.Subject = ""
+	s.Message.Headers = nil
 	s.Message.Body = ""
 }
 
