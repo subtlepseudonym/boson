@@ -1,13 +1,19 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/subtlepseudonym/boson/api"
 	"github.com/subtlepseudonym/boson/email"
+
+	"github.com/emersion/go-smtp"
 )
 
 // TODO: read these from file
@@ -35,19 +41,53 @@ func main() {
 		From:    fmt.Sprintf("%q <%s>", from, replyTo),
 		ReplyTo: replyTo,
 	}
+	emailHandler := api.NewEmailHandler(emailConfig, emailService)
+
 	smsConfig := api.SMSConfig{
 		From: fmt.Sprintf("%q <%s>", from, replyTo),
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/email", api.NewEmailHandler(emailConfig, emailService))
-	mux.Handle("/sms", api.NewSMSHandler(smsConfig, emailService))
+	// exit gracefully
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	stop := make(chan struct{})
 
-	srv := &http.Server{
+	go func() {
+		<-interrupt
+		close(stop)
+	}()
+
+	// set up smtp passthrough
+	smtpSrv := smtp.NewServer(emailHandler)
+	smtpSrv.Addr = ":40589"
+	smtpSrv.Domain = "boson.home.arpa" // TODO: use a real value, from file
+	smtpSrv.WriteTimeout = 60 * time.Second
+	smtpSrv.ReadTimeout = 60 * time.Second
+	smtpSrv.MaxMessageBytes = 1024 * 1024
+	smtpSrv.MaxRecipients = 8
+	smtpSrv.AllowInsecureAuth = true
+
+	// set up push-notification rest service
+	mux := http.NewServeMux()
+	mux.Handle("/email", emailHandler)
+	mux.Handle("/sms", api.NewSMSHandler(smsConfig, emailService))
+	restSrv := &http.Server{
 		Addr:    "0.0.0.0:8080",
 		Handler: mux,
 	}
 
-	log.Printf("Listening on %s\n", srv.Addr)
-	log.Fatal(srv.ListenAndServe())
+	go func() {
+		err := restSrv.ListenAndServe()
+		log.Println("REST:", err)
+	}()
+	log.Printf("Listening on %s\n", restSrv.Addr)
+	go func() {
+		err := smtpSrv.ListenAndServe()
+		log.Println("SMTP:", err)
+	}()
+	log.Printf("SMTP passthrough on %s\n", smtpSrv.Addr)
+
+	<-stop
+	smtpSrv.Shutdown(context.Background())
+	restSrv.Shutdown(context.Background())
 }
