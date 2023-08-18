@@ -9,6 +9,6 @@ COPY --from=subtlepseudonym/healthcheck:0.1.1 /healthcheck /healthcheck
 
 EXPOSE 9000/tcp
 HEALTHCHECK --interval=60s --timeout=2s --retries=3 --start-period=2s \
-	CMD ["/healthcheck", "localhost:9000", "/health"]
+	CMD ["/healthcheck", "localhost:8080", "/ok"]
 
 CMD ["/boson"]

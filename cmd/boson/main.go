@@ -28,6 +28,10 @@ const (
 
 var credentialsPath string
 
+func okHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 func main() {
 	flag.StringVar(&credentialsPath, "credentials", defaultCredentialsPath, "Path to JSON file with email credentials")
 	flag.Parse()
@@ -71,6 +75,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/email", emailHandler)
 	mux.Handle("/sms", api.NewSMSHandler(smsConfig, emailService))
+	mux.HandleFunc("/ok", okHandler)
 	restSrv := &http.Server{
 		Addr:    "0.0.0.0:8080",
 		Handler: mux,
